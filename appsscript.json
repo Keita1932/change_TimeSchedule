@@ -1,0 +1,22 @@
+{
+  "timeZone": "Asia/Tokyo",
+  "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "BigQuery",
+        "version": "v2",
+        "serviceId": "bigquery"
+      }
+    ],
+    "libraries": [
+      {
+        "userSymbol": "m2m_realtime_info",
+        "version": "0",
+        "libraryId": "10hPNrfX2NnaVC6ETItDwsxouiUajsJs0SCJqeED-y0cKiY_EJzr8RTmM",
+        "developmentMode": true
+      }
+    ]
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8"
+}
