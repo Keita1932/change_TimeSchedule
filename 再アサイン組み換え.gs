@@ -15,9 +15,14 @@ function reunite() {
     }
   }
   
-  // A4:Iの範囲をクリア
-  outputSheet.getRange("A4:I" + outputSheet.getLastRow()).clearContent();
+  const lastRow = outputSheet.getLastRow();
   
+  // データが存在する場合のみクリア処理を実行
+  if (lastRow > 3) {
+    outputSheet.getRange("A4:J" + lastRow).clear();
+    outputSheet.getRange("E4:E" + lastRow).clearDataValidations();
+  }
+
   if (outputValues.length > 0) {
     // outputSheetにoutputValuesを書き込む
     outputSheet.getRange(4, 1, outputValues.length, outputValues[0].length).setValues(outputValues);
@@ -44,6 +49,7 @@ function reunite() {
     addMatchingRows(outputValues);
   }
 }
+
 
 function addMatchingRows() {
   const ss = SpreadsheetApp.openById("1fS1jAeFjIGyfPLI1N48GBZWsJ6-oce7U8v8XPLVZ4Rs");
@@ -139,6 +145,12 @@ function addMatchingRows() {
     sortedRows = sortedRows.concat(groupedRows[cleanerName]);
   }
 
+  // データが存在する場合のみクリア処理を実行
+  const lastRow = expressUnassignCleaning.getLastRow();
+  if (lastRow > 1) {
+    expressUnassignCleaning.getRange("A2:H" + lastRow).clearContent();
+  }
+
   // 結果を再アサイン結果シートに出力
   if (sortedRows.length > 0) {
     expressUnassignCleaning.getRange(2, 1, sortedRows.length, 8).setValues(sortedRows);
@@ -148,7 +160,7 @@ function addMatchingRows() {
 
 
 function assign_on_m2m() { 
-  clear_operation_request_sheet();
+
 
   // トークンを取得
   var token = getApiToken();
@@ -169,37 +181,54 @@ function assign_on_m2m() {
           lastRowWithData = i + 1; 
       }
   }
-  var operationData = operationSheet.getRange(startRow, 1, lastRowWithData - startRow + 1, 21).getValues();
+  var operationData = operationSheet.getRange(startRow, 1, lastRowWithData - startRow + 1, 19).getValues();
   Logger.log(operationData);
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1; // 月は0から始まるので1を足します
+  const day = today.getDate();
 
   // APIリクエスト
   for (var i = 0; i < operationData.length; i++) {
-    const api_url_1 = 'https://api-cleaning.m2msystems.cloud/v4/cleanings/schedule';
-
-    var cleaningId = operationData[i][0];
-    var cleanerId = operationData[i][4];
-    var scheduleStart = operationData[i][10];
-    var scheduleEnd = operationData[i][11];
 
 
-    Logger.log(scheduleStart);
-    Logger.log(scheduleEnd);
+    var cleaningId = operationData[i][1];
+    var cleanerId = operationData[i][18];
+
+    const api_url_1 = `https://api-cleaning.m2msystems.cloud/v4/public/cleanings/${cleaningId}/schedule`;
+
+
 
     // 変更後清掃員をassign
     const api_url_3 = `https://api-cleaning.m2msystems.cloud/v3/cleanings/${cleaningId}/cleaners`;
 
-    Logger.log(api_url_2);
+
     Logger.log(api_url_3);
 
 
     // 日本時間の今日の日付と結合してUNIXタイムに変換
-    var startTimestamp = convertDateTimeStringToUnixTimestamp(scheduleStart);
-    var endTimestamp = convertDateTimeStringToUnixTimestamp(scheduleEnd);
+    let scheduleStart = convertDateTimeStringToTimeObject(operationData[i][16]);
+    let scheduleEnd = convertDateTimeStringToTimeObject(operationData[i][17]);
 
-    var payload1 = {
-      "cleaningId": cleaningId,
-      "scheduleStart": startTimestamp,
-      "scheduleEnd": endTimestamp
+    Logger.log(scheduleStart);
+    Logger.log(scheduleEnd);
+
+
+    const payload1 = {
+      "year": year,
+      "month": month,
+      "day": day,
+      "startTime": {
+        "hour": scheduleStart.hour,
+        "minute": scheduleStart.minute,
+        "second": scheduleStart.second
+      },
+      "endTime": {
+        "hour": scheduleEnd.hour,
+        "minute": scheduleEnd.minute,
+        "second": scheduleEnd.second
+      }
     };
 
     var payload3 = {
@@ -219,14 +248,6 @@ function assign_on_m2m() {
       'muteHttpExceptions': true
     };
 
-    var options2 = {
-      'method' : 'DELETE',
-      'contentType': 'application/json',
-      'headers': {
-        'Authorization': 'Bearer ' + token  // Bearerトークンの正しい設定
-      },
-      'muteHttpExceptions': true
-    };
 
     var options3 = {
       'method' : 'post',
@@ -239,14 +260,10 @@ function assign_on_m2m() {
     };
 
     Logger.log('options1: ' + JSON.stringify(options1));
-    Logger.log('options2: ' + JSON.stringify(options2));
     Logger.log('options3: ' + JSON.stringify(options3));
   
 
 
-    var response2 = UrlFetchApp.fetch(api_url_2, options2);
-    var responseText2 = response2.getContentText();
-    Logger.log('response2: ' + responseText2);
 
     var response3 = UrlFetchApp.fetch(api_url_3, options3);
     var responseText3 = response3.getContentText();
@@ -257,7 +274,7 @@ function assign_on_m2m() {
     Logger.log('response1: ' + responseText1);
 
     var result;
-    if (responseText1.includes('error') || responseText2.includes('error') || responseText3.includes('error')) { // エラーを防ぐ
+    if (responseText1.includes('error')|| responseText3.includes('error')) { // エラーを防ぐ
       result = 'エラーが発生しました';
     } else {
       result = '成功しました';
@@ -266,22 +283,30 @@ function assign_on_m2m() {
     Logger.log('result: ' + result);
 
     // シートに結果を出力
-    operationSheet.getRange(i + startRow, 20, 1, 4).setValues([[result, responseText1.replace(/\r\n/g, ''), responseText2.replace(/\r\n/g, ''), responseText3.replace(/\r\n/g, '')]]);
+    operationSheet.getRange(i + startRow, 20, 1, 2).setValues([[result, responseText1.replace(/\r\n/g, ''), ]]);
 
 
   }
 
-  kariInputSheet()
-  
-  // 指定したセルのコンテンツを削除
-  inputSheet.getRange('B3').clearContent();
-  inputSheet.getRange('B5').clearContent();
-  inputSheet.getRange('C5').clearContent();
-  inputSheet.getRange('E5').clearContent();
-  inputSheet.getRange('B8').clearContent();
   
 
-  setTrigger();
+}
+
+function convertDateTimeStringToTimeObject(dateTimeString) {
+  if (!dateTimeString || dateTimeString === "" || dateTimeString === undefined || dateTimeString === null) {
+    return null;
+  }
+
+  const date = new Date(dateTimeString);
+  if (isNaN(date.getTime())) {
+    return null;
+  }
+
+  return {
+    hour: date.getHours(),
+    minute: date.getMinutes(),
+    second: date.getSeconds()
+  };
 }
 
 

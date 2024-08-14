@@ -1,4 +1,4 @@
-function filterByB3() {
+function express_mainSheet() {
   let ss = SpreadsheetApp.openById("1fS1jAeFjIGyfPLI1N48GBZWsJ6-oce7U8v8XPLVZ4Rs");
   
   // ①固定シートのデータを取得
@@ -23,7 +23,7 @@ function filterByB3() {
     row[5],  // 6列目を4列目に
     row[7],  // 8列目を5列目に
     row[8],  // 9列目を6列目に
-    row[6],   // 7列目を7列目に
+    row[6],  // 7列目を7列目に
     row[12]
   ];
 
@@ -62,12 +62,11 @@ function filterByB3() {
       row[3],    // 元の4列目
       row[4],    // 元の5列目
       index + 1, // 6列目に番号を付ける
-      row[6],     // 元の7列目
-      row[7]
+      row[6],    // 元の7列目
+      row[7]     // 元の8列目
     ];
     return newRow;
   });
-
 
   // pickupDataとafterDataを出力する前に該当範囲をクリア
   detailedSheet.getRange("B31:I").clearContent();
@@ -82,7 +81,7 @@ function filterByB3() {
   Logger.log(afterData);
 
   // pickupDataとafterDataをreturnして次の関数で使用
-  making_delete_assigh_sheet(pickupData, afterData)
+  return { pickupData, afterData }; // 修正点: returnで値を返す
 }
 
 function making_delete_assigh_sheet(pickupData, afterData) {
@@ -96,17 +95,7 @@ function making_delete_assigh_sheet(pickupData, afterData) {
 
   // "外し結果"シートの2行目以降にデータを設定
   resultSheet.getRange("A2:H28").clear();
-  resultSheet.getRange(2, 1, data.length, 8).setValues(data);
-
-  // "外し結果"シートの最後の行を空白を除外して取得
-  let resultData = resultSheet.getRange(2, 1, resultSheet.getLastRow() - 1, 8).getValues();
-  let lastRow = resultData.length;
-  for (let i = resultData.length - 1; i >= 0; i--) {
-    if (resultData[i].some(value => value !== "")) {
-      lastRow = i + 1;
-      break;
-    }
-  }
+  resultSheet.getRange(2, 1, data.length, 8).setValues(data);  // 修正: data.length を使用
 
   // pickupDataの1列目を空白にする
   let modifiedPickupData = pickupData.map(row => {
@@ -114,15 +103,18 @@ function making_delete_assigh_sheet(pickupData, afterData) {
     return row;
   });
 
+  // modifiedPickupDataを出力する範囲をクリア
+  resultSheet.getRange(31, 1, modifiedPickupData.length, 8).clearContent();
+
   // modifiedPickupDataを"外し結果"シートの一番下の行に追加
   if (modifiedPickupData.length > 0) {
-    resultSheet.getRange(lastRow + 1, 1, modifiedPickupData.length, 8).setValues(modifiedPickupData);
+    resultSheet.getRange(31, 1, modifiedPickupData.length, 8).setValues(modifiedPickupData);
   }
 }
 
-
-
 function runBothFilters() {
-  let { pickupData, afterData } = filterByB3();
+  let { pickupData, afterData } = express_mainSheet(); // 修正点: 戻り値を受け取る
   making_delete_assigh_sheet(pickupData, afterData);
 }
+
+
