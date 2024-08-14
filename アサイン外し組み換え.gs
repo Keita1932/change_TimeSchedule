@@ -108,12 +108,18 @@ function making_delete_assigh_sheet(pickupData, afterData) {
     }
   }
 
-  
-  // pickupDataを"外し結果"シートの一番下の行に追加
-  if (pickupData.length > 0) {
-    resultSheet.getRange(31, 1, pickupData.length, 8).setValues(pickupData);
+  // pickupDataの1列目を空白にする
+  let modifiedPickupData = pickupData.map(row => {
+    row[0] = ""; // 1列目を空白にする
+    return row;
+  });
+
+  // modifiedPickupDataを"外し結果"シートの一番下の行に追加
+  if (modifiedPickupData.length > 0) {
+    resultSheet.getRange(lastRow + 1, 1, modifiedPickupData.length, 8).setValues(modifiedPickupData);
   }
 }
+
 
 
 function runBothFilters() {

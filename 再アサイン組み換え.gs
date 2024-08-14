@@ -147,8 +147,142 @@ function addMatchingRows() {
 
 
 
+function assign_on_m2m() { 
+  clear_operation_request_sheet();
+
+  // トークンを取得
+  var token = getApiToken();
+  if (token === null) {
+    Logger.log("トークンを取得できませんでした。");
+    return; // トークンが取得できなかった場合、処理を中断
+  }
+  
+  const ss = SpreadsheetApp.openById("1fS1jAeFjIGyfPLI1N48GBZWsJ6-oce7U8v8XPLVZ4Rs");
+  const operationSheet = ss.getSheetByName('再アサイン結果');
+
+  // 対象のシートからリクエスト内容を取得
+  const startRow = 2;
+  var nameColumn = operationSheet.getRange("A:A").getValues(); 
+  var lastRowWithData = 1; // Start from row 1
+  for (var i = 0; i < nameColumn.length; i++) {
+      if (nameColumn[i][0] !== "" && nameColumn[i][0] !== null) {
+          lastRowWithData = i + 1; 
+      }
+  }
+  var operationData = operationSheet.getRange(startRow, 1, lastRowWithData - startRow + 1, 21).getValues();
+  Logger.log(operationData);
+
+  // APIリクエスト
+  for (var i = 0; i < operationData.length; i++) {
+    const api_url_1 = 'https://api-cleaning.m2msystems.cloud/v4/cleanings/schedule';
+
+    var cleaningId = operationData[i][0];
+    var cleanerId = operationData[i][4];
+    var scheduleStart = operationData[i][10];
+    var scheduleEnd = operationData[i][11];
 
 
+    Logger.log(scheduleStart);
+    Logger.log(scheduleEnd);
+
+    // 変更後清掃員をassign
+    const api_url_3 = `https://api-cleaning.m2msystems.cloud/v3/cleanings/${cleaningId}/cleaners`;
+
+    Logger.log(api_url_2);
+    Logger.log(api_url_3);
+
+
+    // 日本時間の今日の日付と結合してUNIXタイムに変換
+    var startTimestamp = convertDateTimeStringToUnixTimestamp(scheduleStart);
+    var endTimestamp = convertDateTimeStringToUnixTimestamp(scheduleEnd);
+
+    var payload1 = {
+      "cleaningId": cleaningId,
+      "scheduleStart": startTimestamp,
+      "scheduleEnd": endTimestamp
+    };
+
+    var payload3 = {
+      "cleanerId": cleanerId
+    };
+
+    Logger.log('payload1: ' + JSON.stringify(payload1));
+    Logger.log('payload3: ' + JSON.stringify(payload3));
+
+    var options1 = {
+      'method' : 'post',
+      'contentType': 'application/json',
+      'headers': {
+        'Authorization': 'Bearer ' + token  // Bearerトークンの正しい設定
+      },
+      'payload' : JSON.stringify(payload1),
+      'muteHttpExceptions': true
+    };
+
+    var options2 = {
+      'method' : 'DELETE',
+      'contentType': 'application/json',
+      'headers': {
+        'Authorization': 'Bearer ' + token  // Bearerトークンの正しい設定
+      },
+      'muteHttpExceptions': true
+    };
+
+    var options3 = {
+      'method' : 'post',
+      'contentType': 'application/json',
+      'headers': {
+        'Authorization': 'Bearer ' + token  // Bearerトークンの正しい設定
+      },
+      'payload' : JSON.stringify(payload3),
+      'muteHttpExceptions': true
+    };
+
+    Logger.log('options1: ' + JSON.stringify(options1));
+    Logger.log('options2: ' + JSON.stringify(options2));
+    Logger.log('options3: ' + JSON.stringify(options3));
+  
+
+
+    var response2 = UrlFetchApp.fetch(api_url_2, options2);
+    var responseText2 = response2.getContentText();
+    Logger.log('response2: ' + responseText2);
+
+    var response3 = UrlFetchApp.fetch(api_url_3, options3);
+    var responseText3 = response3.getContentText();
+    Logger.log('response3: ' + responseText3);
+
+    var response1 = UrlFetchApp.fetch(api_url_1, options1);
+    var responseText1 = response1.getContentText();
+    Logger.log('response1: ' + responseText1);
+
+    var result;
+    if (responseText1.includes('error') || responseText2.includes('error') || responseText3.includes('error')) { // エラーを防ぐ
+      result = 'エラーが発生しました';
+    } else {
+      result = '成功しました';
+    }
+
+    Logger.log('result: ' + result);
+
+    // シートに結果を出力
+    operationSheet.getRange(i + startRow, 20, 1, 4).setValues([[result, responseText1.replace(/\r\n/g, ''), responseText2.replace(/\r\n/g, ''), responseText3.replace(/\r\n/g, '')]]);
+
+
+  }
+
+  kariInputSheet()
+  
+  // 指定したセルのコンテンツを削除
+  inputSheet.getRange('B3').clearContent();
+  inputSheet.getRange('B5').clearContent();
+  inputSheet.getRange('C5').clearContent();
+  inputSheet.getRange('E5').clearContent();
+  inputSheet.getRange('B8').clearContent();
+  
+
+  setTrigger();
+}
 
 
 
