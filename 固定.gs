@@ -6,7 +6,7 @@ function fixing() {
   // 最後の行を取得
   var lastRow = liquid.getLastRow();
   if (lastRow < 4) {
-    return; // コピーするデータがない場合は終了
+    return; // コピーするデータがない場合は終わり
   }
 
   // A4からS列までの範囲の全データを取得
