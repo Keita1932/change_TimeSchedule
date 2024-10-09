@@ -51,7 +51,7 @@ function express_mainSheet() {
     return false;
   });
 
-  // AfterDataを作成し、6列目を削除して各行に番号を付ける
+  // AfterDataを作成し、6列目を削除して各行に番号を付ける..
   let afterData = beforeData.filter(row => {
     return !pickupData.some(pickupRow => pickupRow.toString() === row.toString());
   }).map((row, index) => {
